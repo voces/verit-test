@@ -9,6 +9,33 @@ export default class Node {
 
 	}
 
+	traverseUp( callback, acc ) {
+
+		acc = callback( this, acc );
+		let cur = this;
+		while ( cur = cur.parent )
+			acc = callback( cur, acc );
+
+		return acc;
+
+	}
+
+	allBeforeEaches() {
+
+		return this.traverseUp( ( node, beforeEaches ) =>
+			[ ...node.beforeEaches || [], ...beforeEaches ]
+		, [] );
+
+	}
+
+	allAfterEaches() {
+
+		return this.traverseUp( ( node, afterEaches ) =>
+			[ ...node.afterEaches || [], ...afterEaches ]
+		, [] );
+
+	}
+
 	path( next ) {
 
 		let str = this.name + ( next ? `/${next}` : "" );

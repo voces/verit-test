@@ -3,8 +3,8 @@
 
 // TODO: to allow node args, we should split the funcional part of this to _vt.mjs
 
-import yargs from "yargs";
 import fs from "fs";
+import yargs from "yargs";
 
 import vt from "../index.mjs";
 

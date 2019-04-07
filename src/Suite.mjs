@@ -31,6 +31,7 @@ export default class Suite extends Node {
 
 		this.add( suite );
 
+		// TODO: catch errors here
 		if ( callback ) callback( suite );
 
 		return suite;

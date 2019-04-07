@@ -19,20 +19,18 @@ export default class Test extends Node {
 
 		try {
 
-			let cur = this;
-			while ( cur = cur.parent )
-				for ( let i = 0; i < cur.beforeEaches.length; i ++ )
-					await cur.beforeEaches[ i ]( this );
+			const beforeEaches = this.allBeforeEaches();
+			for ( let i = 0; i < beforeEaches.length; i ++ )
+				await beforeEaches[ i ]( this );
 
 			if ( this.config.mochaDone && this.callback.length > 0 )
 				await new Promise( resolve => this.callback( resolve, this ) );
 			else
 				await this.callback( this );
 
-			cur = this;
-			while ( cur = cur.parent )
-				for ( let i = 0; i < cur.afterEaches.length; i ++ )
-					await cur.afterEaches[ i ]( this );
+			const afterEaches = this.allAfterEaches();
+			for ( let i = 0; i < afterEaches.length; i ++ )
+				await afterEaches[ i ]( this );
 
 		} catch ( err ) {
 

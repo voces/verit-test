@@ -13,11 +13,16 @@ export default class Runner {
 
 		this.describe = ( name, config, callback ) => {
 
-			if ( typeof config === "function" )
-				callback = config;
+			if ( typeof config === "function" ) {
 
-			this.cur = this.cur.describe( name, { ...this.suiteConfig, ...config } );
+				callback = config;
+				config = undefined;
+
+			}
+
+			this.cur = this.cur.describe( name, config );
 			this.cur.callback = callback;
+			// TODO: catch errors here
 			this.cur.callback( this.cur );
 			this.cur = this.cur.parent;
 
@@ -72,7 +77,7 @@ export default class Runner {
 		// TODO: is this required after converting to Runner?
 		for ( let i = 0; i < files.length; i ++ ) {
 
-			const suite = new Suite( files[ i ] );
+			const suite = new Suite( files[ i ], null, this.suiteConfig );
 			this.cur = suite;
 			this.suites.push( suite );
 			await import( path.join( process.cwd(), files[ i ] ) ).catch( console.error );

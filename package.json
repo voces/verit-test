@@ -1,6 +1,6 @@
 {
   "name": "verit-test",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "index.mjs",
   "scripts": {
@@ -31,5 +31,10 @@
   "bugs": {
     "url": "https://github.com/voces/verit-test/issues"
   },
-  "homepage": "https://github.com/voces/verit-test#readme"
+  "homepage": "https://github.com/voces/verit-test#readme",
+  "files": [
+    "index.mjs",
+    "src",
+    "bin"
+  ]
 }
