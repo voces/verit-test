@@ -1,0 +1,66 @@
+
+export default class Node {
+
+	constructor( name, parent, config ) {
+
+		this.name = name;
+		this.parent = parent;
+		this.rawConfig = config || {};
+
+	}
+
+	path( next ) {
+
+		let str = this.name + ( next ? `/${next}` : "" );
+		let cur = this;
+
+		while ( cur = cur.parent )
+			str = `${cur.name}/${str}`;
+
+		return str;
+
+	}
+
+	get config() {
+
+		const node = this;
+
+		Object.defineProperty( this, "config", { value:
+			new Proxy( this.rawConfig, { get( _, param ) {
+
+				if ( node.rawConfig[ param ] !== undefined ) return node.rawConfig[ param ];
+				if ( node.parent && node.parent.config[ param ] !== undefined ) return node.parent.config[ param ];
+				return node.constructor[ param ];
+
+			} } )
+		} );
+
+		return this.config;
+
+	}
+
+	get level() {
+
+		let level = 0;
+		let cur = this;
+		while ( cur = cur.parent ) level ++;
+
+		Object.defineProperty( this, "level", { value: level } );
+		return this.level;
+
+	}
+
+	get duration() {
+
+		Object.defineProperty( this, "duration", { value: this.end - this.start } );
+		return this.duration;
+
+	}
+
+	timeout( timeout ) {
+
+		this._timeout = timeout;
+
+	}
+
+}

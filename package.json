@@ -1,0 +1,35 @@
+{
+  "name": "verit-test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.mjs",
+  "scripts": {
+    "test": "vt"
+  },
+  "author": "verit",
+  "license": "ISC",
+  "devDependencies": {
+    "babel-eslint": "^10.0.1",
+    "chalk": "^2.4.2",
+    "eslint": "^5.16.0",
+    "eslint-config-mdcs": "^4.2.3",
+    "eslint-config-verit": "^1.0.2"
+  },
+  "dependencies": {
+    "fast-glob": "^2.2.6",
+    "yargs": "^13.2.2"
+  },
+  "bin": {
+    "vt": "bin/vt.mjs",
+    "vtest": "bin/vt.mjs",
+    "verit-test": "bin/vt.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/voces/verit-test.git"
+  },
+  "bugs": {
+    "url": "https://github.com/voces/verit-test/issues"
+  },
+  "homepage": "https://github.com/voces/verit-test#readme"
+}
