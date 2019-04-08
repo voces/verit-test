@@ -1,7 +1,7 @@
 
 export default class Node {
 
-	constructor( name, parent, config ) {
+	constructor( name, config, parent ) {
 
 		this.name = name;
 		this.parent = parent;

@@ -19,6 +19,11 @@ const argv = yargs
 		default: true,
 		boolean: true
 	} )
+	.option( "globals", {
+		describe: "Whether test helpers are installed as globals",
+		default: false,
+		boolean: true
+	} )
 	.argv;
 
 const { _: paths, $0, ...config } = argv;

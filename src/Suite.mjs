@@ -7,14 +7,14 @@ import { time, timeout } from "./util.mjs";
 
 export default class Suite extends Node {
 
-	constructor( name, parent, config ) {
+	constructor( name, config, parent ) {
 
-		super( name, parent, config );
+		super( name, config, parent );
 		Object.defineProperties( this, {
 			childrenMap: { value: {} },
 			childrenArr: { value: [] }
 		} );
-		this.children = this.childrenArr; // For printing
+		this.children = this.childrenMap; // For printing
 		this.befores = [];
 		this.afters = [];
 		this.beforeEaches = [];
@@ -27,7 +27,7 @@ export default class Suite extends Node {
 		if ( typeof config === "function" )
 			callback = config;
 
-		const suite = new Suite( name, this, config );
+		const suite = new Suite( name, config, this );
 
 		this.add( suite );
 
@@ -40,14 +40,18 @@ export default class Suite extends Node {
 
 	it( name, config, callback ) {
 
-		if ( typeof config === "function" )
-			callback = config;
+		if ( typeof config === "function" ) {
 
-		const test = new Test( name, callback, this, config );
+			callback = config;
+			config = undefined;
+
+		}
+
+		const test = new Test( name, config, callback, this );
 
 		this.add( test );
 
-		return this;
+		return test;
 
 	}
 

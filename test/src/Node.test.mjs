@@ -7,19 +7,19 @@ describe( "Node#constructor", () => {
 
 	it( "sets name, parent, and config default", () => {
 
-		const node = new Node( 0, 1 );
+		const node = new Node( 0, undefined, 1 );
 
 		assert.equal( node.name, 0 );
-		assert.equal( node.parent, 1 );
 		assert.deepEqual( node.rawConfig, {} );
+		assert.equal( node.parent, 1 );
 
 	} );
 
 	it( "sets config if passed", () => {
 
-		const node = new Node( 0, 1, 2 );
+		const node = new Node( 0, 1 );
 
-		assert.equal( node.rawConfig, 2 );
+		assert.equal( node.rawConfig, 1 );
 
 	} );
 
@@ -54,8 +54,8 @@ describe( "Node#path", () => {
 	it( "tree + next", () => {
 
 		const root = new Node( "root" );
-		const a = new Node( "a", root );
-		const b = new Node( "b", a );
+		const a = new Node( "a", null, root );
+		const b = new Node( "b", null, a );
 
 		assert.equal( b.path( "c" ), "root/a/b/c" );
 
@@ -74,8 +74,8 @@ describe( "Node#config", () => {
 	it( "uses node's config value if set", () => {
 
 		Node.foo = "bar";
-		const root = new Node( "root", null, { foo: "baz" } );
-		const child = new Node( "child", root, { foo: "qux" } );
+		const root = new Node( "root", { foo: "baz" } );
+		const child = new Node( "child", { foo: "qux" }, root );
 
 		assert.equal( child.config.foo, "qux" );
 
@@ -84,8 +84,8 @@ describe( "Node#config", () => {
 	it( "uses root's config value if set and child's is not", () => {
 
 		Node.foo = "bar";
-		const root = new Node( "root", null, { foo: "baz" } );
-		const child = new Node( "child", root );
+		const root = new Node( "root", { foo: "baz" } );
+		const child = new Node( "child", null, root );
 
 		assert.equal( child.config.foo, "baz" );
 
@@ -94,8 +94,8 @@ describe( "Node#config", () => {
 	it( "uses klass static value if child and root configs are not set", () => {
 
 		Node.foo = "bar";
-		const root = new Node( "root", null );
-		const child = new Node( "child", root );
+		const root = new Node( "root" );
+		const child = new Node( "child", null, root );
 
 		assert.equal( child.config.foo, "bar" );
 
@@ -116,7 +116,7 @@ describe( "Node#level", () => {
 	it( "child", () => {
 
 		const root = new Node();
-		const child = new Node( "child", root );
+		const child = new Node( "child", null, root );
 
 		assert.equal( child.level, 1 );
 
@@ -125,8 +125,8 @@ describe( "Node#level", () => {
 	it( "grandchild", () => {
 
 		const root = new Node();
-		const child = new Node( "child", root );
-		const grandchild = new Node( "grandchild", child );
+		const child = new Node( "child", null, root );
+		const grandchild = new Node( "grandchild", null, child );
 
 		assert.equal( grandchild.level, 2 );
 

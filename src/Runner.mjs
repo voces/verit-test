@@ -28,7 +28,7 @@ export default class Runner {
 
 		};
 
-		this.it = ( name, config, callback ) => this.cur.it( name, config, callback );
+		this.it = ( ...args ) => this.cur.it( ...args );
 		this.before = name => this.cur.before( name );
 		this.beforeEach = name => this.cur.beforeEach( name );
 		this.after = name => this.cur.after( name );
@@ -77,7 +77,7 @@ export default class Runner {
 		// TODO: is this required after converting to Runner?
 		for ( let i = 0; i < files.length; i ++ ) {
 
-			const suite = new Suite( files[ i ], null, this.suiteConfig );
+			const suite = new Suite( files[ i ], this.suiteConfig );
 			this.cur = suite;
 			this.suites.push( suite );
 			await import( path.join( process.cwd(), files[ i ] ) ).catch( console.error );
@@ -91,8 +91,12 @@ export default class Runner {
 
 		if ( ! this.loaded ) await this.load();
 
-		for ( let i = 0; i < this.suites.length; i ++ )
-			await this.suites[ i ].run( false );
+		if ( this.parallel )
+			await Promise.all( this.suites.map( suite => suite.run( false ) ) );
+
+		else
+			for ( let i = 0; i < this.suites.length; i ++ )
+				await this.suites[ i ].run( false );
 
 		if ( print ) this.print();
 

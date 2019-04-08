@@ -1,6 +1,6 @@
 {
   "name": "verit-test",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "description": "",
   "main": "index.mjs",
   "scripts": {
@@ -13,7 +13,8 @@
     "chalk": "^2.4.2",
     "eslint": "^5.16.0",
     "eslint-config-mdcs": "^4.2.3",
-    "eslint-config-verit": "^1.0.2"
+    "eslint-config-verit": "^1.0.2",
+    "sinon": "^7.3.1"
   },
   "dependencies": {
     "fast-glob": "^2.2.6",

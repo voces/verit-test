@@ -6,9 +6,17 @@ import { time } from "./util.mjs";
 
 export default class Test extends Node {
 
-	constructor( name, callback, parent, config ) {
+	constructor( name, config, callback, parent ) {
 
-		super( name, parent, config );
+		if ( typeof config === "function" ) {
+
+			parent = callback;
+			callback = config;
+			config = undefined;
+
+		}
+
+		super( name, config, parent );
 		this.callback = callback;
 
 	}
@@ -54,7 +62,9 @@ export default class Test extends Node {
 		return [
 			[
 				"  ".repeat( this.level ),
-				chalk[ this.pass ? "green" : "red" ]( this.name ),
+				this.pass ? chalk.green( "✓" ) : chalk.red( "✗" ),
+				" ",
+				this.pass ? this.name : chalk.red( this.name ),
 				" ",
 				chalk.gray( `(${this.duration.toFixed( 2 )}ms)` )
 			].join( "" ),
