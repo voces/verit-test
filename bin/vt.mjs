@@ -24,6 +24,12 @@ const argv = yargs
 		default: false,
 		boolean: true
 	} )
+	.option( "line", {
+		alias: "l",
+		describe: "Lines of tests and suites to run",
+		number: true,
+		array: true
+	} )
 	.argv;
 
 const { _: paths, $0, ...config } = argv;

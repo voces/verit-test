@@ -1,6 +1,6 @@
 
 import assert from "assert";
-import { describe, it, beforeEach, after } from "../../index.mjs";
+import { describe, it, beforeEach } from "../../index.mjs";
 import Node from "../../src/Node.mjs";
 
 describe( "Node#constructor", () => {
@@ -65,12 +65,6 @@ describe( "Node#path", () => {
 
 describe( "Node#config", () => {
 
-	after( () => {
-
-		delete Node.foo;
-
-	} );
-
 	it( "uses node's config value if set", () => {
 
 		Node.foo = "bar";
@@ -78,6 +72,8 @@ describe( "Node#config", () => {
 		const child = new Node( "child", { foo: "qux" }, root );
 
 		assert.equal( child.config.foo, "qux" );
+
+		delete Node.foo;
 
 	} );
 
@@ -89,6 +85,8 @@ describe( "Node#config", () => {
 
 		assert.equal( child.config.foo, "baz" );
 
+		delete Node.foo;
+
 	} );
 
 	it( "uses klass static value if child and root configs are not set", () => {
@@ -98,6 +96,8 @@ describe( "Node#config", () => {
 		const child = new Node( "child", null, root );
 
 		assert.equal( child.config.foo, "bar" );
+
+		delete Node.foo;
 
 	} );
 
@@ -180,6 +180,29 @@ describe( "Node#duration", () => {
 				writable: false
 			}
 		);
+
+	} );
+
+} );
+
+describe( "Node#fullName", () => {
+
+	it( "single node", () => {
+
+		const node = new Node( "node" );
+
+		assert.equal( node.fullName, "node" );
+
+	} );
+
+	it( "many nodes", () => {
+
+		const root = new Node( "root" );
+		const child1 = new Node( "child1", root );
+		const child2 = new Node( "child2", child1 );
+		new Node( "child3", child2 );
+
+		assert.equal( child2.fullName, "root/child1/child2" );
 
 	} );
 

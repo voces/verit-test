@@ -5,20 +5,57 @@ import Node from "./Node.mjs";
 import Test from "./Test.mjs";
 import { time, timeout } from "./util.mjs";
 
+const getCallerLine = () => {
+
+	try {
+
+		throw new Error();
+
+	} catch ( e ) {
+
+		const simple = e.stack.match( /\[as callback\].*:([0-9]+):[0-9]+/ );
+		if ( simple && simple[ 1 ] ) return parseInt( simple[ 1 ] );
+
+		return NaN;
+
+		// TODO: Replace simple above with complex below
+		// const stackLines = e.stack.split( "\n" ).slice( 1 );
+		// const stackLine = stackLines.find( s =>
+		// 	s.startsWith( "    at " ) && ! s.includes( "verit-test/src" ) );
+		// const parts = stackLine.split( ":" );
+		// const line = parseInt( parts[ parts.length - 2 ] );
+		// if ( line ) return line;
+
+	}
+
+};
+
 export default class Suite extends Node {
 
 	constructor( name, config, parent ) {
 
 		super( name, config, parent );
-		Object.defineProperties( this, {
-			childrenMap: { value: {} },
-			childrenArr: { value: [] }
-		} );
+		this.childrenMap = {};
+		this.childrenArr = [];
 		this.children = this.childrenMap; // For printing
 		this.befores = [];
 		this.afters = [];
 		this.beforeEaches = [];
 		this.afterEaches = [];
+
+		this.it.skip = ( name, config, callback ) => {
+
+			if ( typeof config === "function" ) {
+
+				callback = config;
+				config = {};
+
+			}
+
+			config.skip = true;
+			return this.it( name, config, callback );
+
+		};
 
 	}
 
@@ -43,9 +80,12 @@ export default class Suite extends Node {
 		if ( typeof config === "function" ) {
 
 			callback = config;
-			config = undefined;
+			config = {};
 
 		}
+
+		if ( this.config.line && ! this.config.line.includes( getCallerLine() ) )
+			config.skip = true;
 
 		const test = new Test( name, config, callback, this );
 
@@ -79,16 +119,10 @@ export default class Suite extends Node {
 
 	}
 
-	parallel( parallel = true ) {
-
-		this.rawConfig.parallel = parallel;
-
-	}
-
 	add( node ) {
 
 		if ( this.childrenMap[ node.name ] !== undefined )
-			console.warn( `Rerwriting suite ${this.path( this, name )}` );
+			throw new Error( `Rewriting suite ${node.fullName}` );
 
 		this.childrenMap[ node.name ] = node;
 		this.childrenArr.push( node );
@@ -98,6 +132,8 @@ export default class Suite extends Node {
 	}
 
 	async run( exit = true ) {
+
+		if ( this.config.skip ) return;
 
 		this.start = time();
 
@@ -113,6 +149,9 @@ export default class Suite extends Node {
 
 		}
 
+		// TODO: parallel should be either a boolean or Node
+		// If a node, the test should run in sync under that node
+		// A false value on a test indicates the suite; a suite indicates itself
 		if ( this.config.parallel ) {
 
 			const promises = Promise.all( this.childrenArr.map( node => node.run() ) );
@@ -144,18 +183,21 @@ export default class Suite extends Node {
 
 	}
 
-	traverse( cb ) {
+	traverse( cb, acc ) {
 
-		cb( this );
-
+		acc = cb( this, acc );
 		for ( const name in this.childrenMap ) {
 
 			const node = this.childrenMap[ name ];
 
 			if ( node instanceof Suite )
-				node.traverse( cb );
+				acc = node.traverse( cb, acc );
+			else
+				acc = cb( node, acc );
 
 		}
+
+		return acc;
 
 	}
 
@@ -178,11 +220,26 @@ export default class Suite extends Node {
 
 	}
 
+	get skippedTests() {
+
+		Object.defineProperty( this, "skippedTests", {
+			value: this.childrenArr.reduce( ( sum, node ) =>
+				node instanceof Suite && sum + node.skippedTests ||
+				node.config.skip && sum + 1 ||
+				sum,
+			0 )
+		} );
+		return this.skippedTests;
+
+	}
+
 	get tests() {
 
 		Object.defineProperty( this, "tests", {
 			value: this.childrenArr.reduce( ( sum, node ) =>
-				node instanceof Suite ? sum + node.tests : sum + 1, 0 )
+				node instanceof Suite && sum + node.tests ||
+				sum + 1,
+			0 )
 		} );
 		return this.tests;
 
@@ -190,16 +247,22 @@ export default class Suite extends Node {
 
 	toString() {
 
+		const skipped = this.tests === this.skippedTests;
+
+		const color = ! this.pass && "red" ||
+			skipped && "yellow" ||
+			"green";
+
 		return [
 			[
 				"  ".repeat( this.level ),
-				chalk[ this.pass ? "green" : "red" ]( this.name ),
+				chalk[ color ]( this.name ),
 				" ",
-				`[${this.passingTests}/${this.tests}]`,
-				" ",
+				skipped ? "" :
+					`[${this.passingTests - this.skippedTests}/${this.tests - this.skippedTests}] `,
 				chalk.gray( `(${this.duration.toFixed( 2 )}ms)` )
 			].join( "" ),
-			...this.childrenArr.map( String )
+			...this.skippedTests === this.tests ? [] : this.childrenArr.map( String )
 		].join( "\n" );
 
 	}
