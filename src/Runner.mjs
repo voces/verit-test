@@ -40,7 +40,8 @@ export default class Runner {
 
 		return {
 			mochaDone: this.mochaDone,
-			parallel: this.parallel
+			parallel: this.parallel,
+			used: this.user
 		};
 
 	}

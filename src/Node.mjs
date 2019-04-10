@@ -3,6 +3,13 @@ export default class Node {
 
 	constructor( name, config, parent ) {
 
+		if ( config && config instanceof Node ) {
+
+			parent = config;
+			config = undefined;
+
+		}
+
 		this.name = name;
 		this.parent = parent;
 		this.rawConfig = config || {};
@@ -81,6 +88,13 @@ export default class Node {
 
 		Object.defineProperty( this, "duration", { value: this.end - this.start } );
 		return this.duration;
+
+	}
+
+	get fullName() {
+
+		return this.traverseUp( ( node, name ) =>
+			name ? `${node.name}/${name}` : node.name );
 
 	}
 

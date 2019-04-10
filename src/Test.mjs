@@ -21,7 +21,10 @@ export default class Test extends Node {
 
 	}
 
+	// TODO: we should only await async functions/explicit parallel
 	async run() {
+
+		if ( this.config.skip ) return;
 
 		this.start = time();
 
@@ -59,16 +62,24 @@ export default class Test extends Node {
 
 	toString() {
 
+		if ( this.config.skip )
+			return [
+				"  ".repeat( this.level ),
+				chalk.yellow( "☐" ),
+				" ",
+				this.name
+			].join( "" );
+
 		return [
 			[
 				"  ".repeat( this.level ),
 				this.pass ? chalk.green( "✓" ) : chalk.red( "✗" ),
 				" ",
-				this.pass ? this.name : chalk.red( this.name ),
+				this.name,
 				" ",
 				chalk.gray( `(${this.duration.toFixed( 2 )}ms)` )
 			].join( "" ),
-			this.err ? chalk.red( this.err.stack ) : false
+			...this.err ? [ chalk.red( this.err.stack ), "" ] : []
 		].filter( Boolean ).join( "\n" );
 
 	}
