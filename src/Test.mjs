@@ -32,16 +32,23 @@ export default class Test extends Node {
 
 			const beforeEaches = this.allBeforeEaches();
 			for ( let i = 0; i < beforeEaches.length; i ++ )
-				await beforeEaches[ i ]( this );
+				if ( beforeEaches[ i ].constructor.name === "AsyncFunction" )
+					await beforeEaches[ i ]( this );
+				else
+					beforeEaches[ i ]( this );
 
 			if ( this.config.mochaDone && this.callback.length > 0 )
 				await new Promise( resolve => this.callback( resolve, this ) );
-			else
+			else if ( this.callback.constructor.name === "AsyncFunction" )
 				await this.callback( this );
+			else this.callback( this );
 
 			const afterEaches = this.allAfterEaches();
 			for ( let i = 0; i < afterEaches.length; i ++ )
-				await afterEaches[ i ]( this );
+				if ( afterEaches[ i ].constructor.name === "AsyncFunction" )
+					await afterEaches[ i ]( this );
+				else
+					afterEaches[ i ]( this );
 
 		} catch ( err ) {
 
@@ -53,14 +60,34 @@ export default class Test extends Node {
 
 	}
 
+	get fail() {
+
+		Object.defineProperty( this, "fail", { value: !! this.err } );
+		return this.fail;
+
+	}
+
 	get pass() {
 
-		Object.defineProperty( this, "pass", { value: ! this.err } );
+		Object.defineProperty( this, "pass", { value: ! this.err && ! this.config.skip } );
 		return this.pass;
 
 	}
 
 	toString() {
+
+		if ( this.err )
+			return [
+				[
+					"  ".repeat( this.level ),
+					chalk.red( "✗" ),
+					" ",
+					this.name,
+					" ",
+					chalk.gray( `(${this.duration.toFixed( 2 )}ms)` )
+				].join( "" ),
+				chalk.red( this.err.stack )
+			].filter( Boolean ).join( "\n" );
 
 		if ( this.config.skip )
 			return [
@@ -71,16 +98,13 @@ export default class Test extends Node {
 			].join( "" );
 
 		return [
-			[
-				"  ".repeat( this.level ),
-				this.pass ? chalk.green( "✓" ) : chalk.red( "✗" ),
-				" ",
-				this.name,
-				" ",
-				chalk.gray( `(${this.duration.toFixed( 2 )}ms)` )
-			].join( "" ),
-			...this.err ? [ chalk.red( this.err.stack ), "" ] : []
-		].filter( Boolean ).join( "\n" );
+			"  ".repeat( this.level ),
+			chalk.green( "✓" ),
+			" ",
+			this.name,
+			" ",
+			chalk.gray( `(${this.duration.toFixed( 2 )}ms)` )
+		].join( "" );
 
 	}
 

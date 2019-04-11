@@ -1,6 +1,7 @@
 
 import glob from "fast-glob";
 import path from "path";
+import chalk from "chalk";
 
 import Suite from "./Suite.mjs";
 
@@ -22,9 +23,24 @@ export default class Runner {
 
 			this.cur = this.cur.describe( name, config );
 			this.cur.callback = callback;
-			// TODO: catch errors here
-			this.cur.callback( this.cur );
+			let result;
+			try {
+
+				result = this.cur.callback( this.cur );
+
+			} catch ( err ) {
+
+				this.cur.tests.forEach( test => {
+
+					test.config.skip = true;
+					test.err = err;
+
+				} );
+
+			}
 			this.cur = this.cur.parent;
+
+			return result;
 
 		};
 
@@ -41,7 +57,7 @@ export default class Runner {
 		return {
 			mochaDone: this.mochaDone,
 			parallel: this.parallel,
-			used: this.user
+			...this.user
 		};
 
 	}
@@ -81,7 +97,7 @@ export default class Runner {
 			const suite = new Suite( files[ i ], this.suiteConfig );
 			this.cur = suite;
 			this.suites.push( suite );
-			await import( path.join( process.cwd(), files[ i ] ) ).catch( console.error );
+			await import( path.join( process.cwd(), files[ i ] ) ).catch( err => suite.err = err );
 			this.cur = undefined;
 
 		}
@@ -103,10 +119,58 @@ export default class Runner {
 
 	}
 
+	get pass() {
+
+		return this.suites.every( suite => suite.pass );
+
+	}
+
+	get passingTests() {
+
+		Object.defineProperty( this, "passingTests", {
+			value: this.tests.filter( t => t.pass )
+		} );
+		return this.passingTests;
+
+	}
+
+	get failingTests() {
+
+		Object.defineProperty( this, "failingTests", {
+			value: this.tests.filter( t => t.fail )
+		} );
+		return this.failingTests;
+
+	}
+
+	get skippedTests() {
+
+		Object.defineProperty( this, "skippedTests", {
+			value: this.tests.filter( t => ! t.fail && t.config.skip )
+		} );
+		return this.skippedTests;
+
+	}
+
+	get tests() {
+
+		Object.defineProperty( this, "tests", {
+			value: [].concat( ...this.suites.map( suites => suites.tests ) )
+		} );
+		return this.tests;
+
+	}
+
 	print() {
 
 		for ( let i = 0; i < this.suites.length; i ++ )
 			console.log( this.suites[ i ].toString() );
+
+		console.log( "" );
+
+		console.log( chalk.green( "%d tests passing" ), this.passingTests.length );
+		console.log( chalk.red( "%d tests failing" ), this.failingTests.length );
+		if ( this.skippedTests.length ) console.log( chalk.yellow( "%d tests skipped" ), this.skippedTests.length );
 
 	}
 

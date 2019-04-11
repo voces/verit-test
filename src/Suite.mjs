@@ -68,8 +68,22 @@ export default class Suite extends Node {
 
 		this.add( suite );
 
-		// TODO: catch errors here
-		if ( callback ) callback( suite );
+		if ( callback )
+			try {
+
+				callback( suite );
+
+			} catch ( err ) {
+
+				suite.tests.forEach( test => {
+
+					test.err = err;
+					test.config.skip = true;
+
+				} );
+				suite.err = err;
+
+			}
 
 		return suite;
 
@@ -140,18 +154,29 @@ export default class Suite extends Node {
 		try {
 
 			for ( let i = 0; i < this.befores.length; i ++ )
-				await this.befores[ i ]( this );
+				if ( this.befores[ i ].constructor.name === "AsyncFunction" )
+					await this.befores[ i ]( this );
+				else
+					this.befores[ i ]( this );
 
 		} catch ( err ) {
 
-			// TODO: we should catch these on the suite instead
-			throw err;
+			this.err = err;
+			this.tests.forEach( test => test.err = err );
+
+			this.end = time();
+
+			if ( exit && ! this.parent )
+				process.exit( this.pass ? 0 : 1 );
+
+			return;
 
 		}
 
 		// TODO: parallel should be either a boolean or Node
 		// If a node, the test should run in sync under that node
 		// A false value on a test indicates the suite; a suite indicates itself
+		// TODO: pipe stdout and stderr into the test
 		if ( this.config.parallel ) {
 
 			const promises = Promise.all( this.childrenArr.map( node => node.run() ) );
@@ -161,18 +186,23 @@ export default class Suite extends Node {
 		} else
 
 			for ( let i = 0; i < this.childrenArr.length; i ++ )
-				if ( this._timeout ) await timeout( this.childrenArr[ i ].run(), this._timeout );
-				else await this.childrenArr[ i ].run();
+				if ( this._timeout )
+					await timeout( this.childrenArr[ i ].run(), this._timeout );
+				else
+					await this.childrenArr[ i ].run();
 
 		try {
 
 			for ( let i = 0; i < this.afters.length; i ++ )
-				await this.afters[ i ]( this );
+				if ( this.afters[ i ].constructor.name === "AsyncFunction" )
+					await this.afters[ i ]( this );
+				else
+					this.afters[ i ]( this );
 
 		} catch ( err ) {
 
-			// TODO: we should catch these on the suite instead
-			throw err;
+			this.err = err;
+			this.tests.forEach( test => test.err = err );
 
 		}
 
@@ -201,10 +231,19 @@ export default class Suite extends Node {
 
 	}
 
+	get fail() {
+
+		Object.defineProperty( this, "fail", {
+			value: this.err || this.childrenArr.some( node => node.fail )
+		} );
+		return this.fail;
+
+	}
+
 	get pass() {
 
 		Object.defineProperty( this, "pass", {
-			value: this.childrenArr.every( node => node.pass )
+			value: ! this.err && this.childrenArr.every( node => node.pass )
 		} );
 		return this.pass;
 
@@ -213,22 +252,27 @@ export default class Suite extends Node {
 	get passingTests() {
 
 		Object.defineProperty( this, "passingTests", {
-			value: this.childrenArr.reduce( ( sum, node ) =>
-				node instanceof Suite ? sum + node.passingTests : sum + node.pass, 0 )
+			value: this.tests.filter( t => t.pass )
 		} );
 		return this.passingTests;
+
+	}
+
+	get failingTests() {
+
+		Object.defineProperty( this, "failingTests", {
+			value: this.tests.filter( t => t.fail )
+		} );
+		return this.failingTests;
 
 	}
 
 	get skippedTests() {
 
 		Object.defineProperty( this, "skippedTests", {
-			value: this.childrenArr.reduce( ( sum, node ) =>
-				node instanceof Suite && sum + node.skippedTests ||
-				node.config.skip && sum + 1 ||
-				sum,
-			0 )
+			value: this.tests.filter( t => ! t.fail && t.config.skip )
 		} );
+		if ( this.skippedTests.length ) console.log( this.skippedTests );
 		return this.skippedTests;
 
 	}
@@ -236,20 +280,17 @@ export default class Suite extends Node {
 	get tests() {
 
 		Object.defineProperty( this, "tests", {
-			value: this.childrenArr.reduce( ( sum, node ) =>
-				node instanceof Suite && sum + node.tests ||
-				sum + 1,
-			0 )
+			value: [].concat( ...this.childrenArr.map( node => node instanceof Suite ? node.tests : node ) )
 		} );
 		return this.tests;
 
 	}
 
-	toString() {
+	toString( recurse = true ) {
 
-		const skipped = this.tests === this.skippedTests;
+		const skipped = this.tests.length === this.skippedTests.length;
 
-		const color = ! this.pass && "red" ||
+		const color = this.fail && "red" ||
 			skipped && "yellow" ||
 			"green";
 
@@ -259,10 +300,11 @@ export default class Suite extends Node {
 				chalk[ color ]( this.name ),
 				" ",
 				skipped ? "" :
-					`[${this.passingTests - this.skippedTests}/${this.tests - this.skippedTests}] `,
+					`[${this.passingTests.length}/${this.tests.length - this.skippedTests.length}] `,
 				chalk.gray( `(${this.duration.toFixed( 2 )}ms)` )
 			].join( "" ),
-			...this.skippedTests === this.tests ? [] : this.childrenArr.map( String )
+			...this.err ? [ chalk.red( this.err.stack ) ] : [],
+			...recurse && ! skipped ? this.childrenArr.map( String ) : []
 		].join( "\n" );
 
 	}
