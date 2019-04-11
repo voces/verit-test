@@ -60,13 +60,21 @@ export default class Node {
 		const node = this;
 
 		Object.defineProperty( this, "config", { value:
-			new Proxy( this.rawConfig, { get( _, param ) {
+			new Proxy( this.rawConfig, {
+				get( _, param ) {
 
-				if ( node.rawConfig[ param ] !== undefined ) return node.rawConfig[ param ];
-				if ( node.parent && node.parent.config[ param ] !== undefined ) return node.parent.config[ param ];
-				return node.constructor[ param ];
+					if ( node.rawConfig[ param ] !== undefined ) return node.rawConfig[ param ];
+					if ( node.parent && node.parent.config[ param ] !== undefined ) return node.parent.config[ param ];
+					return node.constructor[ param ];
 
-			} } )
+				},
+				set( _, param, value ) {
+
+					node.rawConfig[ param ] = value;
+					return true;
+
+				}
+			} )
 		} );
 
 		return this.config;

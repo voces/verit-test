@@ -202,3 +202,42 @@ it( "Suite#traverse", () => {
 	assert.deepStrictEqual( nodes, [ ...nodes ].sort() );
 
 } );
+
+describe( "Suite#pass", () => {
+
+	it( "empty", () => {
+
+		const root = new Suite( "root" );
+
+		assert( root.pass );
+
+	} );
+
+	it( "with child", async () => {
+
+		const root = new Suite( "root" );
+		root.it( "test", () => assert( false ) );
+		await root.run( false );
+
+		assert( ! root.pass );
+
+	} );
+
+	it( "memoizes", () => {
+
+		const root = new Suite( "root" );
+		root.pass;
+
+		assert.deepStrictEqual(
+			Object.getOwnPropertyDescriptor( root, "pass" ),
+			{
+				configurable: false,
+				enumerable: false,
+				value: true,
+				writable: false
+			}
+		);
+
+	} );
+
+} );

@@ -15,12 +15,12 @@ const argv = yargs
 		boolean: true
 	} )
 	.option( "parallel", {
-		describe: "Whether the tests run in parallel",
+		describe: "Option to run tests in parallel",
 		default: true,
 		boolean: true
 	} )
 	.option( "globals", {
-		describe: "Whether test helpers are installed as globals",
+		describe: "Option to attach global test helpers",
 		default: false,
 		boolean: true
 	} )

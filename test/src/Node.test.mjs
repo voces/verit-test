@@ -67,37 +67,40 @@ describe( "Node#config", () => {
 
 	it( "uses node's config value if set", () => {
 
-		Node.foo = "bar";
-		const root = new Node( "root", { foo: "baz" } );
-		const child = new Node( "child", { foo: "qux" }, root );
+		class ExtendedNode extends Node {}
+		ExtendedNode.foo = "bar";
+		const root = new ExtendedNode( "root", { foo: "baz" } );
+		const child = new ExtendedNode( "child", { foo: "qux" }, root );
 
 		assert.equal( child.config.foo, "qux" );
 
-		delete Node.foo;
+		delete ExtendedNode.foo;
 
 	} );
 
 	it( "uses root's config value if set and child's is not", () => {
 
-		Node.foo = "bar";
-		const root = new Node( "root", { foo: "baz" } );
-		const child = new Node( "child", null, root );
+		class ExtendedNode extends Node {}
+		ExtendedNode.foo = "bar";
+		const root = new ExtendedNode( "root", { foo: "baz" } );
+		const child = new ExtendedNode( "child", null, root );
 
 		assert.equal( child.config.foo, "baz" );
 
-		delete Node.foo;
+		delete ExtendedNode.foo;
 
 	} );
 
 	it( "uses klass static value if child and root configs are not set", () => {
 
-		Node.foo = "bar";
-		const root = new Node( "root" );
-		const child = new Node( "child", null, root );
+		class ExtendedNode extends Node {}
+		ExtendedNode.foo = "bar";
+		const root = new ExtendedNode( "root" );
+		const child = new ExtendedNode( "child", null, root );
 
 		assert.equal( child.config.foo, "bar" );
 
-		delete Node.foo;
+		delete ExtendedNode.foo;
 
 	} );
 
