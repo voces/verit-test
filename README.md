@@ -20,7 +20,6 @@ npm i -D verit-test
 
 Aliases: `vt`, `vtest`, `verit-test`
 
-The entire test suite:
 ```bash
 # The entire test suite:
 vt

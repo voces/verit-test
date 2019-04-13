@@ -45,6 +45,7 @@
     "es6",
     "module",
     "import",
+    "mjs",
     "mocha",
     "vt",
     "vtest"
