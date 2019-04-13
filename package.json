@@ -5,13 +5,16 @@
   "main": "index.mjs",
   "scripts": {
     "lint": "eslint \"**/*.mjs\"",
-    "test": "./bin/vt.mjs"
+    "test": "c8 --reporter=html --reporter=text ./bin/vt.mjs",
+    "coverage": "c8 report report --reporter=html --reporter=text-lcov | coveralls"
   },
   "author": "verit",
   "license": "ISC",
   "devDependencies": {
     "babel-eslint": "^10.0.1",
+    "c8": "^3.5.0",
     "chalk": "^2.4.2",
+    "coveralls": "^3.0.3",
     "eslint": "^5.16.0",
     "eslint-config-mdcs": "^4.2.3",
     "eslint-config-verit": "^1.0.2",
