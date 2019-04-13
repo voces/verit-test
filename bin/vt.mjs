@@ -1,53 +1,50 @@
 #!/bin/sh
 ":" //# comment; exec /usr/bin/env node --experimental-modules --no-warnings "$0" "$@"
 
-// TODO: to allow node args, we should split the funcional part of this to _vt.mjs
+import { spawn } from "child_process";
+import path from "path";
+import process from "process";
+import unparse from "yargs-unparser";
 
-import fs from "fs";
-import yargs from "yargs";
+import args from "./args.mjs";
 
-import vt from "../index.mjs";
+const __dirname = path.dirname( new URL( import.meta.url ).pathname );
 
-const argv = yargs
-	.option( "mocha-done", {
-		describe: "Use `done` callback argument",
-		default: false,
-		boolean: true
-	} )
-	.option( "parallel", {
-		describe: "Option to run tests in parallel",
-		default: true,
-		boolean: true
-	} )
-	.option( "globals", {
-		describe: "Option to attach global test helpers",
-		default: false,
-		boolean: true
-	} )
-	.option( "line", {
-		alias: "l",
-		describe: "Lines of tests and suites to run",
-		number: true,
-		array: true
-	} )
-	.argv;
+const objFilter = ( obj, cb ) => {
 
-const { _: paths, $0, ...config } = argv;
-if ( paths.length )
+	const newObj = {};
+	for ( const prop in obj )
+		if ( cb( obj[ prop ], prop ) ) newObj[ prop ] = obj[ prop ];
+	return newObj;
 
-	if ( paths.length === 1 && fs.existsSync( paths[ 0 ] ) )
-		config.files = paths;
+};
 
-	else
-		config.glob = paths;
+const trueArgKeys = process.argv.slice( 2 ).map( arg => arg.replace( /^-+/, "" ) );
+const trueArgs = objFilter( args, ( _, key ) => trueArgKeys.some( trueKey => trueKey.startsWith( key ) ) );
+const nodeArgs = objFilter( trueArgs, ( _, key ) => process.allowedNodeEnvironmentFlags.has( key ) );
+const vtArgs = objFilter( trueArgs, ( _, key ) => ! process.allowedNodeEnvironmentFlags.has( key ) );
 
-( async () => {
+if ( ! nodeArgs[ "experimental-modules" ] ) nodeArgs[ "experimental-modules" ] = true;
+if ( ! nodeArgs[ "no-warnings" ] ) nodeArgs[ "no-warnings" ] = true;
 
-	await vt( config ).catch( err => {
+const finalArgs = [ ...unparse( nodeArgs ), path.join( __dirname, "_vt.mjs" ), ...unparse( vtArgs ) ];
 
-		console.error( err );
-		process.exit( 1 );
+const proc = spawn( process.execPath, finalArgs, {
+	stdio: "inherit"
+} );
 
-	} );
+proc.on( "exit", ( code, signal ) =>
+	process.on( "exit", () => {
 
-} )();
+		if ( signal ) process.kill( process.pid, signal );
+		else process.exit( code );
+
+	} ) );
+
+// terminate children
+process.on( "SIGINT", () => {
+
+	proc.kill( "SIGINT" );
+	proc.kill( "SIGTERM" );
+
+} );
