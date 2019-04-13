@@ -37,5 +37,15 @@
   "files": [
     "src",
     "bin"
+  ],
+  "keywords": [
+    "test",
+    "esm",
+    "es6",
+    "module",
+    "import",
+    "mocha",
+    "vt",
+    "vtest"
   ]
 }
