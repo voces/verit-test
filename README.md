@@ -1,6 +1,10 @@
 
 # verit-test
 
+[![Build Status](https://travis-ci.org/voces/verit-test.svg?branch=master)](https://travis-ci.org/voces/verit-test)
+[![NPM](https://img.shields.io/npm/v/verit-test.svg)](https://www.npmjs.com/package/verit-test)
+[![license](https://img.shields.io/npm/l/verit-test.svg)]()
+
 A basic JavaScript testing framework designed to work with `.mjs` files without need of a transpiler.
 
 ## Usage
