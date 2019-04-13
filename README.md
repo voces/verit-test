@@ -4,6 +4,7 @@
 [![Build Status](https://travis-ci.org/voces/verit-test.svg?branch=master)](https://travis-ci.org/voces/verit-test)
 [![NPM](https://img.shields.io/npm/v/verit-test.svg)](https://www.npmjs.com/package/verit-test)
 [![license](https://img.shields.io/npm/l/verit-test.svg)]()
+[![Coverage Status](https://coveralls.io/repos/github/voces/verit-test/badge.svg)](https://coveralls.io/github/voces/verit-test)
 
 A basic JavaScript testing framework designed to work with `.mjs` files without need of a transpiler.
 
