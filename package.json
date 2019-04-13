@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.mjs",
   "scripts": {
+    "lint": "eslint \"**/*.mjs\"",
     "test": "vt"
   },
   "author": "verit",
