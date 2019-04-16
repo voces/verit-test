@@ -3,7 +3,7 @@ import chalk from "chalk";
 
 import Node from "./Node.mjs";
 import Test from "./Test.mjs";
-import { time, timeout } from "./util.mjs";
+import { clock } from "./util.mjs";
 
 const getCallerLine = () => {
 
@@ -145,70 +145,58 @@ export default class Suite extends Node {
 
 	}
 
-	async run( exit = true ) {
-
-		if ( this.config.skip ) return;
-
-		this.start = time();
+	_run() {
 
 		try {
 
-			for ( let i = 0; i < this.befores.length; i ++ )
-				if ( this.befores[ i ].constructor.name === "AsyncFunction" )
-					await this.befores[ i ]( this );
-				else
-					this.befores[ i ]( this );
+			return this.__run();
 
 		} catch ( err ) {
 
 			this.err = err;
 			this.tests.forEach( test => test.err = err );
 
-			this.end = time();
-
-			if ( exit && ! this.parent )
-				process.exit( this.pass ? 0 : 1 );
-
-			return;
-
 		}
+
+	}
+
+	async __run() {
+
+		for ( let i = 0; i < this.befores.length; i ++ )
+			if ( this.befores[ i ].constructor.name === "AsyncFunction" )
+				await this.befores[ i ]( this );
+			else
+				this.befores[ i ]( this );
 
 		// TODO: parallel should be either a boolean or Node
 		// If a node, the test should run in sync under that node
 		// A false value on a test indicates the suite; a suite indicates itself
 		// TODO: pipe stdout and stderr into the test
-		if ( this.config.parallel ) {
 
-			const promises = Promise.all( this.childrenArr.map( node => node.run() ) );
-			if ( this._timeout ) await timeout( promises, this._timeout );
-			else await promises;
+		if ( this.config.parallel )
+			await Promise.all( this.childrenArr.map( node => node.run() ) );
 
-		} else
-
+		else
 			for ( let i = 0; i < this.childrenArr.length; i ++ )
-				if ( this._timeout )
-					await timeout( this.childrenArr[ i ].run(), this._timeout );
-				else
-					await this.childrenArr[ i ].run();
+				await this.childrenArr[ i ].run();
 
-		try {
+		for ( let i = 0; i < this.afters.length; i ++ )
+			if ( this.afters[ i ].constructor.name === "AsyncFunction" )
+				await this.afters[ i ]( this );
+			else
+				this.afters[ i ]( this );
 
-			for ( let i = 0; i < this.afters.length; i ++ )
-				if ( this.afters[ i ].constructor.name === "AsyncFunction" )
-					await this.afters[ i ]( this );
-				else
-					this.afters[ i ]( this );
+	}
 
-		} catch ( err ) {
+	async run( exit = true ) {
 
-			this.err = err;
-			this.tests.forEach( test => test.err = err );
+		if ( this.config.skip ) return;
 
-		}
+		this.start = clock();
+		await this._run( exit );
+		this.end = clock();
 
-		this.end = time();
-
-		if ( exit && ! this.parent )
+		if ( exit && ( ! this.parent || this.err ) )
 			process.exit( this.pass ? 0 : 1 );
 
 	}
@@ -272,7 +260,6 @@ export default class Suite extends Node {
 		Object.defineProperty( this, "skippedTests", {
 			value: this.tests.filter( t => ! t.fail && t.config.skip )
 		} );
-		if ( this.skippedTests.length ) console.log( this.skippedTests );
 		return this.skippedTests;
 
 	}
@@ -288,20 +275,22 @@ export default class Suite extends Node {
 
 	toString( recurse = true ) {
 
-		const skipped = this.tests.length === this.skippedTests.length;
+		const skipped = this.config.skip ||
+			this.tests.length === this.skippedTests.length;
 
 		const color = this.fail && "red" ||
 			skipped && "yellow" ||
 			"green";
 
+		const duration = skipped ? undefined : chalk.gray( `(${this.duration.toFixed( 2 )}ms)` );
+
 		return [
 			[
 				"  ".repeat( this.level ),
 				chalk[ color ]( this.name ),
-				" ",
-				skipped ? "" :
-					`[${this.passingTests.length}/${this.tests.length - this.skippedTests.length}] `,
-				chalk.gray( `(${this.duration.toFixed( 2 )}ms)` )
+				skipped ?
+					"" :
+					` [${this.passingTests.length}/${this.tests.length - this.skippedTests.length}] ${duration}`
 			].join( "" ),
 			...this.err ? [ chalk.red( this.err.stack ) ] : [],
 			...recurse && ! skipped ? this.childrenArr.map( String ) : []
@@ -312,4 +301,3 @@ export default class Suite extends Node {
 }
 
 Suite.parallel = true;
-Suite.mochaDone = false;

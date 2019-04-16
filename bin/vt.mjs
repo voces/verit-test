@@ -19,15 +19,19 @@ const objFilter = ( obj, cb ) => {
 
 };
 
-const trueArgKeys = process.argv.slice( 2 ).map( arg => arg.replace( /^-+/, "" ) );
-const trueArgs = objFilter( args, ( _, key ) => trueArgKeys.some( trueKey => trueKey.startsWith( key ) ) );
-const nodeArgs = objFilter( trueArgs, ( _, key ) => process.allowedNodeEnvironmentFlags.has( key ) );
-const vtArgs = objFilter( trueArgs, ( _, key ) => ! process.allowedNodeEnvironmentFlags.has( key ) );
+const nodeArgs = objFilter( args, ( _, key ) => process.allowedNodeEnvironmentFlags.has( key ) );
+const vtArgs = objFilter( args, ( _, key ) => ! process.allowedNodeEnvironmentFlags.has( key ) );
 
-if ( ! nodeArgs[ "experimental-modules" ] ) nodeArgs[ "experimental-modules" ] = true;
-if ( ! nodeArgs[ "no-warnings" ] ) nodeArgs[ "no-warnings" ] = true;
+// We default these to true
+if ( nodeArgs[ "experimental-modules" ] === undefined ) nodeArgs[ "experimental-modules" ] = true;
+if ( nodeArgs[ "no-warnings" ] === undefined ) nodeArgs[ "no-warnings" ] = true;
 
-const finalArgs = [ ...unparse( nodeArgs ), path.join( __dirname, "_vt.mjs" ), ...unparse( vtArgs ) ];
+const finalArgs = [
+	...unparse( nodeArgs ),
+	path.join( __dirname, "_vt.mjs" ),
+	...args._,
+	...unparse( vtArgs )
+];
 
 const proc = spawn( process.execPath, finalArgs, {
 	stdio: "inherit"

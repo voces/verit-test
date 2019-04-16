@@ -104,6 +104,15 @@ describe( "Node#config", () => {
 
 	} );
 
+	it( "can set config values after the fact", () => {
+
+		const node = new Node();
+		node.config.foo = "bar";
+
+		assert.equal( node.config.foo, "bar" );
+
+	} );
+
 } );
 
 describe( "Node#level", () => {
@@ -164,18 +173,18 @@ describe( "Node#duration", () => {
 
 	} );
 
-	it( "works", test => {
+	it( "works", function () {
 
-		assert.equal( test.node.duration, 6 );
+		assert.equal( this.node.duration, 6 );
 
 	} );
 
-	it( "memoizes", test => {
+	it( "memoizes", function () {
 
-		test.node.duration;
+		this.node.duration;
 
 		assert.deepStrictEqual(
-			Object.getOwnPropertyDescriptor( test.node, "duration" ),
+			Object.getOwnPropertyDescriptor( this.node, "duration" ),
 			{
 				configurable: false,
 				enumerable: false,
@@ -208,5 +217,14 @@ describe( "Node#fullName", () => {
 		assert.equal( child2.fullName, "root/child1/child2" );
 
 	} );
+
+} );
+
+it( "Node#timeout", async () => {
+
+	const node = new Node();
+	node.timeout( 17 );
+
+	assert.equal( node.config.timeout, 17 );
 
 } );

@@ -1,6 +1,7 @@
 
 import assert from "assert";
 import sinon from "sinon";
+import stripAnsi from "strip-ansi";
 import { describe, it } from "../../index.mjs";
 import Suite from "../../src/Suite.mjs";
 
@@ -36,16 +37,15 @@ describe( "Suite#describe", () => {
 
 	it( "with callback", () => {
 
-		let called = false;
-		const caller = () => called = true;
+		const callback = sinon.spy();
 
 		const root = new Suite( "root" );
-		const child = root.describe( "child", caller );
+		const child = root.describe( "child", callback );
 
 		assert.equal( root.children.child, child );
 		assert.equal( root.childrenArr[ 0 ], child );
 		assert.equal( child.name, "child" );
-		assert( called );
+		assert( callback.called );
 
 	} );
 
@@ -237,6 +237,309 @@ describe( "Suite#pass", () => {
 				writable: false
 			}
 		);
+
+	} );
+
+} );
+
+const addTests = root => [
+	root.it( "test1", () => assert( false ) ),
+	root.it( "test2", () => {} ),
+	root.it( "test3", () => {} ),
+	root.it( "test4", { skip: true }, () => {} )
+];
+
+describe( "Suite#tests", () => {
+
+	it( "empty", () => {
+
+		const root = new Suite( "root" );
+
+		assert.deepStrictEqual( root.tests, [] );
+
+	} );
+
+	it( "with children", async () => {
+
+		const root = new Suite( "root" );
+		const tests = addTests( root );
+
+		assert.deepStrictEqual(
+			root.tests,
+			tests
+		);
+
+	} );
+
+	it( "memoizes", () => {
+
+		const root = new Suite( "root" );
+		const tests = addTests( root );
+		root.tests;
+
+		assert.deepStrictEqual(
+			Object.getOwnPropertyDescriptor( root, "tests" ),
+			{
+				configurable: false,
+				enumerable: false,
+				value: tests,
+				writable: false
+			}
+		);
+
+	} );
+
+} );
+
+describe( "Suite#passingTests", () => {
+
+	it( "empty", () => {
+
+		const root = new Suite( "root" );
+
+		assert.deepStrictEqual( root.passingTests, [] );
+
+	} );
+
+	it( "with children", async () => {
+
+		const root = new Suite( "root" );
+		const tests = addTests( root );
+		await root.run( false );
+
+		assert.deepStrictEqual(
+			root.passingTests,
+			tests.slice( 1, 3 )
+		);
+
+	} );
+
+	it( "memoizes", async () => {
+
+		const root = new Suite( "root" );
+		const tests = addTests( root );
+		await root.run( false );
+		root.passingTests;
+
+		assert.deepStrictEqual(
+			Object.getOwnPropertyDescriptor( root, "passingTests" ),
+			{
+				configurable: false,
+				enumerable: false,
+				value: tests.slice( 1, 3 ),
+				writable: false
+			}
+		);
+
+	} );
+
+} );
+
+describe( "Suite#failingTests", () => {
+
+	it( "empty", () => {
+
+		const root = new Suite( "root" );
+
+		assert.deepStrictEqual( root.failingTests, [] );
+
+	} );
+
+	it( "with children", async () => {
+
+		const root = new Suite( "root" );
+		const tests = addTests( root );
+		await root.run( false );
+
+		assert.deepStrictEqual(
+			root.failingTests,
+			[ tests[ 0 ] ]
+		);
+
+	} );
+
+	it( "memoizes", async () => {
+
+		const root = new Suite( "root" );
+		const tests = addTests( root );
+		await root.run( false );
+		root.failingTests;
+
+		assert.deepStrictEqual(
+			Object.getOwnPropertyDescriptor( root, "failingTests" ),
+			{
+				configurable: false,
+				enumerable: false,
+				value: [ tests[ 0 ] ],
+				writable: false
+			}
+		);
+
+	} );
+
+} );
+
+describe( "Suite#skippedTests", () => {
+
+	it( "empty", () => {
+
+		const root = new Suite( "root" );
+
+		assert.deepStrictEqual( root.skippedTests, [] );
+
+	} );
+
+	it( "with children", async () => {
+
+		const root = new Suite( "root" );
+		const tests = addTests( root );
+		await root.run( false );
+
+		assert.deepStrictEqual(
+			root.skippedTests,
+			[ tests[ 3 ] ]
+		);
+
+	} );
+
+	it( "memoizes", async () => {
+
+		const root = new Suite( "root" );
+		const tests = addTests( root );
+		await root.run( false );
+		root.skippedTests;
+
+		assert.deepStrictEqual(
+			Object.getOwnPropertyDescriptor( root, "skippedTests" ),
+			{
+				configurable: false,
+				enumerable: false,
+				value: [ tests[ 3 ] ],
+				writable: false
+			}
+		);
+
+	} );
+
+} );
+
+const asyncSpy = () => {
+
+	const spy = sinon.spy();
+	const callback = async () => spy();
+	Object.defineProperty( callback, "called", { get() {
+
+		return spy.called;
+
+	} } );
+	return callback;
+
+};
+
+describe( "Suite#run", () => {
+
+	it( "runs befores and afters", async () => {
+
+		const suite = new Suite( "suite" );
+
+		const syncBefore = sinon.spy();
+		suite.before( syncBefore );
+		const asyncBefore = asyncSpy();
+		suite.before( asyncBefore );
+		const syncAfter = sinon.spy();
+		suite.after( syncAfter );
+		const asyncAfter = asyncSpy();
+		suite.after( asyncAfter );
+
+		const syncTest = sinon.spy();
+		suite.it( "sync", syncTest );
+		const asyncTest = asyncSpy();
+		suite.it( "async", asyncTest );
+
+		await suite.run( false );
+
+		[
+			syncBefore, asyncBefore,
+			syncTest, asyncTest,
+			syncAfter, asyncAfter
+		].forEach( callback =>
+			assert( callback.called ) );
+
+	} );
+
+	it( "attaches error", async () => {
+
+		const root = new Suite( "root" );
+		const suite = root.describe( "suite", suite => {
+
+			suite.it( "test1" );
+			assert( false );
+			suite.it( "test2" );
+
+		} );
+
+		const errStr = "AssertionError [ERR_ASSERTION]: false == true";
+		assert.equal( suite.err.toString(), errStr );
+		assert.equal( suite.tests.length, 1 );
+		assert.equal( suite.tests[ 0 ].err.toString(), errStr );
+
+	} );
+
+} );
+
+describe( "Suite#toString", () => {
+
+	describe( "skipping", () => {
+
+		it( "via config", () => {
+
+			const suite = new Suite( "suite", { skip: true } );
+
+			assert.equal( stripAnsi( suite.toString() ), "suite" );
+
+		} );
+
+		it( "via being empty", () => {
+
+			const suite = new Suite( "suite" );
+
+			assert.equal( stripAnsi( suite.toString() ), "suite" );
+
+		} );
+
+		it( "via skipped tests", () => {
+
+			const suite = new Suite( "suite" );
+			suite.it( "test1", { skip: true } );
+			suite.it( "test2", { skip: true } );
+
+			assert.equal( stripAnsi( suite.toString() ), "suite" );
+
+		} );
+
+	} );
+
+	it( "with some passing", async () => {
+
+		const suite = new Suite( "suite" );
+		suite.it( "test1", () => {} );
+		suite.it( "test2", () => assert( false ) );
+		await suite.run( false );
+
+		assert(
+			stripAnsi( suite.toString( false ) )
+				.match( /^suite \[1\/2\] \([0-9.]+ms\)$/ )
+		);
+
+	} );
+
+	it( "with an error", async () => {
+
+		const root = new Suite( "root" );
+		const suite = root.describe( "suite", () => assert( false ) );
+		await suite.run( false );
+
+		assert( stripAnsi( suite.toString() ).includes( "suite\nAssertionError" ) );
 
 	} );
 

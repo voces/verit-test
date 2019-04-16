@@ -55,7 +55,6 @@ export default class Runner {
 	get suiteConfig() {
 
 		return {
-			mochaDone: this.mochaDone,
 			parallel: this.parallel,
 			...this.user
 		};
@@ -65,7 +64,6 @@ export default class Runner {
 	config( {
 		glob = [ "**/*.test.mjs", "!node_modules/**" ],
 		files,
-		mochaDone,
 		parallel,
 		...user
 	} = {} ) {
@@ -76,7 +74,6 @@ export default class Runner {
 		if ( ! files ) this.glob = glob;
 		else this.glob = undefined;
 
-		this.mochaDone = mochaDone;
 		this.parallel = parallel;
 
 		this.user = user;

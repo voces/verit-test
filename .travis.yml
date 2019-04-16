@@ -3,5 +3,5 @@ node_js:
   - "node"
 script:
   - npm run lint
-  - npm test
+  - npm run c8-test
 after_success: npm run coverage

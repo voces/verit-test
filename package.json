@@ -1,11 +1,12 @@
 {
   "name": "verit-test",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "",
   "main": "index.mjs",
   "scripts": {
     "lint": "eslint \"**/*.mjs\"",
-    "test": "c8 --reporter=html --reporter=text ./bin/vt.mjs",
+    "test": "./bin/vt.mjs",
+    "c8-test": "c8 --reporter=html --reporter=text ./bin/vt.mjs",
     "coverage": "c8 report report --reporter=html --reporter=text-lcov | coveralls"
   },
   "author": "verit",
@@ -23,6 +24,7 @@
   },
   "dependencies": {
     "fast-glob": "^2.2.6",
+    "strip-ansi": "^5.2.0",
     "yargs": "^13.2.2"
   },
   "bin": {

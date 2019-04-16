@@ -108,7 +108,7 @@ export default class Node {
 
 	timeout( timeout ) {
 
-		this._timeout = timeout;
+		this.config.timeout = timeout;
 
 	}
 

@@ -71,7 +71,6 @@ vt --help
 Options:
   --help        Show help                                              [boolean]
   --version     Show version number                                    [boolean]
-  --mocha-done  Use `done` callback argument          [boolean] [default: false]
   --parallel    Option to run tests in parallel        [boolean] [default: true]
   --globals     Option to attach global test helpers  [boolean] [default: false]
   --line, -l    Lines of tests and suites to run                        [number]

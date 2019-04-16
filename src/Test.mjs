@@ -2,7 +2,7 @@
 import chalk from "chalk";
 
 import Node from "./Node.mjs";
-import { time } from "./util.mjs";
+import { clock, timeout } from "./util.mjs";
 
 export default class Test extends Node {
 
@@ -21,34 +21,22 @@ export default class Test extends Node {
 
 	}
 
-	// TODO: we should only await async functions/explicit parallel
-	async run() {
-
-		if ( this.config.skip ) return;
-
-		this.start = time();
+	// Wraps the actual running in a try/catch and handles timeouts
+	async _run() {
 
 		try {
 
-			const beforeEaches = this.allBeforeEaches();
-			for ( let i = 0; i < beforeEaches.length; i ++ )
-				if ( beforeEaches[ i ].constructor.name === "AsyncFunction" )
-					await beforeEaches[ i ]( this );
-				else
-					beforeEaches[ i ]( this );
+			if ( this.callback.length > 0 )
+				return await timeout(
+					this.__run(),
+					this.config.timeout,
+					`Expected \`done\` to be called within ${this.config.timeout}ms`
+				);
 
-			if ( this.config.mochaDone && this.callback.length > 0 )
-				await new Promise( resolve => this.callback( resolve, this ) );
-			else if ( this.callback.constructor.name === "AsyncFunction" )
-				await this.callback( this );
-			else this.callback( this );
+			if ( this.config.timeout )
+				return await timeout( this.__run(), this.config.timeout );
 
-			const afterEaches = this.allAfterEaches();
-			for ( let i = 0; i < afterEaches.length; i ++ )
-				if ( afterEaches[ i ].constructor.name === "AsyncFunction" )
-					await afterEaches[ i ]( this );
-				else
-					afterEaches[ i ]( this );
+			return await this.__run();
 
 		} catch ( err ) {
 
@@ -56,7 +44,47 @@ export default class Test extends Node {
 
 		}
 
-		this.end = time();
+	}
+
+	async __run() {
+
+		const beforeEaches = this.allBeforeEaches();
+		for ( let i = 0; i < beforeEaches.length; i ++ )
+			if ( beforeEaches[ i ].constructor.name === "AsyncFunction" )
+				await beforeEaches[ i ]( this );
+			else
+				beforeEaches[ i ]( this );
+
+		// We can shave off awaiting if the test has no params
+		if ( this.callback.length > 0 )
+			await new Promise( resolve => this.callback(
+				new Proxy( resolve, {
+					apply: ( _0, _1, args ) => resolve( ...args ),
+					get: ( _0, prop ) => this[ prop ],
+					set: ( _0, prop, value ) => this[ prop ] = value
+				} )
+			) );
+		else if ( this.callback.constructor.name === "AsyncFunction" )
+			await this.callback();
+		else this.callback();
+
+		const afterEaches = this.allAfterEaches();
+		for ( let i = 0; i < afterEaches.length; i ++ )
+			if ( afterEaches[ i ].constructor.name === "AsyncFunction" )
+				await afterEaches[ i ]( this );
+			else
+				afterEaches[ i ]( this );
+
+	}
+
+	// TODO: we should only await async functions/explicit parallel
+	async run() {
+
+		if ( this.config.skip ) return;
+
+		this.start = clock();
+		await this._run();
+		this.end = clock();
 
 	}
 
@@ -109,3 +137,5 @@ export default class Test extends Node {
 	}
 
 }
+
+Test.timeout = 1500;

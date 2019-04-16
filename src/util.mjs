@@ -1,19 +1,25 @@
 
-export const time = ( hrTime = process.hrtime() ) =>
-	hrTime[ 0 ] * 1000 + hrTime[ 1 ] / 1000000;
+export const clock = () =>
+	Number( process.hrtime.bigint() ) / 1000000;
+
+export const sleep = ms => new Promise( resolve => {
+
+	const id = setTimeout( () => {
+
+		clearTimeout( id );
+		resolve();
+
+	}, ms );
+
+} );
 
 // https://italonascimento.github.io/applying-a-timeout-to-your-promises/
-export const timeout = function ( promise, ms ) {
+export const timeout = function ( promise, ms, string ) {
 
 	// Create a promise that rejects in <ms> milliseconds
-	const timeout = new Promise( ( _, reject ) => {
+	const timeout = sleep( ms ).then( () => {
 
-		const id = setTimeout( () => {
-
-			clearTimeout( id );
-			reject( "Timed out after " + ms + "ms." );
-
-		}, ms );
+		throw new Error( string || `Timed out after ${ms}ms.` );
 
 	} );
 
