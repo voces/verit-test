@@ -1,6 +1,6 @@
 {
   "name": "verit-test",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "",
   "main": "index.mjs",
   "scripts": {
@@ -19,13 +19,13 @@
     "eslint": "^5.16.0",
     "eslint-config-mdcs": "^4.2.3",
     "eslint-config-verit": "^1.0.2",
-    "sinon": "^7.3.1",
-    "yargs-unparser": "^1.5.0"
+    "sinon": "^7.3.1"
   },
   "dependencies": {
     "fast-glob": "^2.2.6",
     "strip-ansi": "^5.2.0",
-    "yargs": "^13.2.2"
+    "yargs": "^13.2.2",
+    "yargs-unparser": "^1.5.0"
   },
   "bin": {
     "vt": "bin/vt.mjs",
