@@ -2,6 +2,26 @@
 export const clock = () =>
 	Number( process.hrtime.bigint() ) / 1000000;
 
+export const time = async ( cb, ...args ) => {
+
+	const start = clock();
+
+	const result =
+		cb instanceof Promise ? await cb :
+			cb.constructor.name === "AsyncFunction" ? await cb( ...args ) :
+				cb( ...args );
+
+	const end = clock();
+
+	return {
+		start,
+		result,
+		end,
+		duration: end - start
+	};
+
+};
+
 export const sleep = ms => new Promise( resolve => {
 
 	const id = setTimeout( () => {

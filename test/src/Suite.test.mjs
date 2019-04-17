@@ -102,6 +102,29 @@ describe( "Suite#it", () => {
 
 	} );
 
+	it( "skip", () => {
+
+		const suite = new Suite( "suite" );
+		const test = suite.it.skip( "test", () => {} );
+
+		assert.equal( test.name, "test" );
+		assert.equal( test.config.skip, true );
+
+	} );
+
+	it( "with line config", () => {
+
+		const suite = new Suite( "suite", { line: [ 118 ] } );
+		const test1 = suite.it( "test1", () => {} );
+		const test2 = suite.it( "test2", () => {} );
+
+		assert.equal( test1.name, "test1" );
+		assert.equal( test1.config.skip, undefined );
+		assert.equal( test2.name, "test2" );
+		assert.equal( test2.config.skip, true );
+
+	} );
+
 } );
 
 it( "Suite#before", () => {
@@ -477,6 +500,20 @@ describe( "Suite#run", () => {
 			suite.it( "test2" );
 
 		} );
+
+		const errStr = "AssertionError [ERR_ASSERTION]: false == true";
+		assert.equal( suite.err.toString(), errStr );
+		assert.equal( suite.tests.length, 1 );
+		assert.equal( suite.tests[ 0 ].err.toString(), errStr );
+
+	} );
+
+	it( "attaches error in before block", async () => {
+
+		const suite = new Suite( "suite" );
+		suite.before( () => assert( false ) );
+		suite.it( "test" );
+		await suite.run( false );
 
 		const errStr = "AssertionError [ERR_ASSERTION]: false == true";
 		assert.equal( suite.err.toString(), errStr );

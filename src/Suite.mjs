@@ -18,14 +18,6 @@ const getCallerLine = () => {
 
 		return NaN;
 
-		// TODO: Replace simple above with complex below
-		// const stackLines = e.stack.split( "\n" ).slice( 1 );
-		// const stackLine = stackLines.find( s =>
-		// 	s.startsWith( "    at " ) && ! s.includes( "verit-test/src" ) );
-		// const parts = stackLine.split( ":" );
-		// const line = parseInt( parts[ parts.length - 2 ] );
-		// if ( line ) return line;
-
 	}
 
 };
@@ -52,8 +44,7 @@ export default class Suite extends Node {
 
 			}
 
-			config.skip = true;
-			return this.it( name, config, callback );
+			return this.it( name, { ...config, skip: true }, callback );
 
 		};
 
@@ -145,11 +136,11 @@ export default class Suite extends Node {
 
 	}
 
-	_run() {
+	async _run() {
 
 		try {
 
-			return this.__run();
+			return await this.__run();
 
 		} catch ( err ) {
 
