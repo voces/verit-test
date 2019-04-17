@@ -66,12 +66,7 @@ export default class Suite extends Node {
 
 			} catch ( err ) {
 
-				suite.tests.forEach( test => {
-
-					test.err = err;
-					test.config.skip = true;
-
-				} );
+				suite.tests.forEach( test => test.err = err );
 				suite.err = err;
 
 			}

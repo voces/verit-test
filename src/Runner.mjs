@@ -9,6 +9,7 @@ export default class Runner {
 
 	constructor( config ) {
 
+		this.suites = [];
 		this.loaded = false;
 		this.config( config );
 
@@ -21,26 +22,23 @@ export default class Runner {
 
 			}
 
-			this.cur = this.cur.describe( name, config );
+			const suite = this.cur = this.cur ?
+				this.cur.describe( name, config ) :
+				this.newSuite( name, config );
 			this.cur.callback = callback;
-			let result;
 			try {
 
-				result = this.cur.callback( this.cur );
+				this.cur.callback( this.cur );
 
 			} catch ( err ) {
 
-				this.cur.tests.forEach( test => {
-
-					test.config.skip = true;
-					test.err = err;
-
-				} );
+				this.cur.err = err;
+				this.cur.tests.forEach( test => test.err = err );
 
 			}
 			this.cur = this.cur.parent;
 
-			return result;
+			return suite;
 
 		};
 
@@ -80,6 +78,14 @@ export default class Runner {
 
 	}
 
+	newSuite( name, config ) {
+
+		const suite = new Suite( name, { ...this.suiteConfig, ...config } );
+		this.suites.push( suite );
+		return suite;
+
+	}
+
 	async load() {
 
 		this.suites = [];
@@ -88,12 +94,10 @@ export default class Runner {
 		const files = this.files || await glob.async( this.glob, { dot: true } );
 
 		// We do it in serial so describes remain in order
-		// TODO: is this required after converting to Runner?
 		for ( let i = 0; i < files.length; i ++ ) {
 
-			const suite = new Suite( files[ i ], this.suiteConfig );
+			const suite = this.newSuite( files[ i ] );
 			this.cur = suite;
-			this.suites.push( suite );
 			await import( path.join( process.cwd(), files[ i ] ) ).catch( err => suite.err = err );
 			this.cur = undefined;
 
@@ -102,8 +106,6 @@ export default class Runner {
 	}
 
 	async run( print = true ) {
-
-		if ( ! this.loaded ) await this.load();
 
 		if ( this.parallel )
 			await Promise.all( this.suites.map( suite => suite.run( false ) ) );

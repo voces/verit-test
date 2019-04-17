@@ -24,6 +24,7 @@ export default async config => {
 
 	} else installGlobals();
 
+	await runner.load();
 	await runner.run( true );
 
 };
