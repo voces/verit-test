@@ -33,14 +33,13 @@ describe( "Runner#run", () => {
 	it( "parallel", async () => {
 
 		const runner = new Runner( { parallel: true } );
-		runner.describe( "suite1", suite =>
-			suite.it( "test", async () => await sleep( 10 ) ) );
-		runner.describe( "suite2", suite =>
-			suite.it( "test", async () => await sleep( 10 ) ) );
+		for ( let i = 0; i < 10; i ++ )
+			runner.describe( `suite${i}`, suite =>
+				suite.it( "test", async () => await sleep( 10 ) ) );
 		const { duration } = await time( runner.run( false ) );
 
 		assert( duration > 10 );
-		assert( duration < 20 );
+		assert( duration < 50 );
 
 	} );
 

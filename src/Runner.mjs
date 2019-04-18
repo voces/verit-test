@@ -4,6 +4,14 @@ import path from "path";
 import chalk from "chalk";
 
 import Suite from "./Suite.mjs";
+import { time } from "./util.mjs";
+
+const runSuite = async ( suite, print ) => {
+
+	await suite.run( false );
+	if ( print ) console.log( suite.toString() );
+
+};
 
 export default class Runner {
 
@@ -107,14 +115,20 @@ export default class Runner {
 
 	async run( print = true ) {
 
-		if ( this.parallel )
-			await Promise.all( this.suites.map( suite => suite.run( false ) ) );
+		const { duration } = await time( async() => {
 
-		else
-			for ( let i = 0; i < this.suites.length; i ++ )
-				await this.suites[ i ].run( false );
+			if ( this.parallel )
+				await Promise.all( this.suites.map( suite => runSuite( suite, print ) ) );
 
-		if ( print ) this.print();
+			else
+				for ( let i = 0; i < this.suites.length; i ++ )
+					await runSuite( this.suites[ i ], print );
+
+		} );
+
+		this.duration = duration;
+
+		if ( print ) this.print( false );
 
 	}
 
@@ -160,16 +174,18 @@ export default class Runner {
 
 	}
 
-	print() {
+	print( fullPrint = true ) {
 
-		for ( let i = 0; i < this.suites.length; i ++ )
-			console.log( this.suites[ i ].toString() );
+		if ( fullPrint )
+			for ( let i = 0; i < this.suites.length; i ++ )
+				console.log( this.suites[ i ].toString() );
 
 		console.log( "" );
 
 		console.log( chalk.green( "%d tests passing" ), this.passingTests.length );
 		console.log( chalk.red( "%d tests failing" ), this.failingTests.length );
 		if ( this.skippedTests.length ) console.log( chalk.yellow( "%d tests skipped" ), this.skippedTests.length );
+		console.log( chalk.gray( `Total duration: ${this.duration.toFixed( 2 )}ms` ) );
 
 	}
 

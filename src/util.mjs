@@ -7,8 +7,10 @@ export const time = async ( cb, ...args ) => {
 	const start = clock();
 
 	const result =
-		cb instanceof Promise ? await cb :
-			cb.constructor.name === "AsyncFunction" ? await cb( ...args ) :
+		cb instanceof Promise ?
+			await cb :
+			cb.constructor.name === "AsyncFunction" ?
+				await cb( ...args ) :
 				cb( ...args );
 
 	const end = clock();

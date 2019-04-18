@@ -158,7 +158,6 @@ export default class Suite extends Node {
 		// If a node, the test should run in sync under that node
 		// A false value on a test indicates the suite; a suite indicates itself
 		// TODO: pipe stdout and stderr into the test
-
 		if ( this.config.parallel )
 			await Promise.all( this.childrenArr.map( node => node.run() ) );
 

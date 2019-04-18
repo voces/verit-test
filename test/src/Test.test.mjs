@@ -59,16 +59,16 @@ describe( "Test#run", () => {
 		const test = new Test( "test", { timeout: 10 }, async () => sleep( 100 ) );
 		const { duration } = await time( test.run( false ) );
 
-		assert( duration > 10 && duration < 15 );
+		assert( duration > 10 && duration < 100 );
 
 	} );
 
 	it( "without timeout", async () => {
 
-		const test = new Test( "test", { timeout: undefined }, async () => sleep( 100 ) );
+		const test = new Test( "test", { timeout: undefined }, async () => sleep( 10 ) );
 		const { duration } = await time( test.run( false ) );
 
-		assert( duration > 100 && duration < 115 );
+		assert( duration > 10 );
 
 	} );
 
