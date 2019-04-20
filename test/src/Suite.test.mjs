@@ -69,6 +69,21 @@ describe( "Suite#describe", () => {
 
 	} );
 
+	it( "with line config", () => {
+
+		const root = new Suite( "root", { line: [
+			parseInt( new Error().stack.split( "\n" )[ 1 ].match( /:(\d+):/ )[ 1 ] ) + 2
+		] } );
+		const child1 = root.describe( "child1", () => {} );
+		const child2 = root.describe( "child2", () => {} );
+
+		assert.equal( child1.name, "child1" );
+		assert.equal( child1.config.lineHit, true );
+		assert.equal( child2.name, "child2" );
+		assert.equal( child2.config.lineHit, undefined );
+
+	} );
+
 } );
 
 describe( "Suite#it", () => {
@@ -114,7 +129,24 @@ describe( "Suite#it", () => {
 
 	it( "with line config", () => {
 
-		const suite = new Suite( "suite", { line: [ 118 ] } );
+		const suite = new Suite( "suite", { line: [
+			parseInt( new Error().stack.split( "\n" )[ 1 ].match( /:(\d+):/ )[ 1 ] ) + 2
+		] } );
+		const test1 = suite.it( "test1", () => {} );
+		const test2 = suite.it( "test2", () => {} );
+
+		assert.equal( test1.name, "test1" );
+		assert.equal( test1.config.skip, undefined );
+		assert.equal( test2.name, "test2" );
+		assert.equal( test2.config.skip, true );
+
+	} );
+
+	it( "with testNameFilter config", () => {
+
+		const suite = new Suite( "suite", { testNameFilter: [
+			"s.*t.*e.*te.*1"
+		] } );
 		const test1 = suite.it( "test1", () => {} );
 		const test2 = suite.it( "test2", () => {} );
 

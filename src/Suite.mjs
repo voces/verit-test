@@ -3,7 +3,7 @@ import chalk from "chalk";
 
 import Node from "./Node.mjs";
 import Test from "./Test.mjs";
-import { clock } from "./util.mjs";
+import { clock, memoize } from "./util.mjs";
 
 const getCallerLine = () => {
 
@@ -13,14 +13,20 @@ const getCallerLine = () => {
 
 	} catch ( e ) {
 
-		const simple = e.stack.match( /\[as callback\].*:([0-9]+):[0-9]+/ );
-		if ( simple && simple[ 1 ] ) return parseInt( simple[ 1 ] );
+		const line = e.stack.split( "\n" ).slice( 1 ).find( line =>
+			! line.includes( "verit-test/src" ) );
+		if ( ! line ) return NaN;
 
-		return NaN;
+		const match = line.match( /:(\d+):\d/ );
+		if ( ! match ) return NaN;
+
+		return parseInt( match[ 1 ] );
 
 	}
 
 };
+
+const toRegExp = memoize( str => new RegExp( str ) );
 
 export default class Suite extends Node {
 
@@ -55,7 +61,13 @@ export default class Suite extends Node {
 		if ( typeof config === "function" )
 			callback = config;
 
-		const suite = new Suite( name, config, this );
+		const lineHit = this.config.line && this.config.line.includes( getCallerLine() );
+
+		const suite = new Suite(
+			name,
+			{ ...config, ...lineHit ? { lineHit } : null },
+			this
+		);
 
 		this.add( suite );
 
@@ -84,10 +96,33 @@ export default class Suite extends Node {
 
 		}
 
-		if ( this.config.line && ! this.config.line.includes( getCallerLine() ) )
-			config.skip = true;
-
 		const test = new Test( name, config, callback, this );
+
+		if ( ( this.config.line || this.config.testNameFilter ) && ! this.config.lineHit ) {
+
+			let hit = false;
+
+			if ( this.config.line && this.config.line.includes( getCallerLine() ) )
+				hit = true;
+
+			try {
+
+				if ( ! hit && this.config.testNameFilter &&
+						this.config.testNameFilter.some( str =>
+							toRegExp( str ).test( test.fullName ) ) )
+
+					hit = true;
+
+			} catch ( err ) {
+
+				console.log( err );
+
+			}
+
+			if ( ! hit )
+				test.config.skip = true;
+
+		}
 
 		this.add( test );
 

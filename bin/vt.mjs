@@ -6,7 +6,7 @@ import path from "path";
 import process from "process";
 import unparse from "yargs-unparser";
 
-import args from "./args.mjs";
+import args, { alias } from "./args.mjs";
 
 const __dirname = path.dirname( new URL( import.meta.url ).pathname );
 
@@ -29,8 +29,7 @@ if ( nodeArgs[ "no-warnings" ] === undefined ) nodeArgs[ "no-warnings" ] = true;
 const finalArgs = [
 	...unparse( nodeArgs ),
 	path.join( __dirname, "_vt.mjs" ),
-	...args._,
-	...unparse( vtArgs )
+	...unparse( vtArgs, { alias } )
 ];
 
 const proc = spawn( process.execPath, finalArgs, {

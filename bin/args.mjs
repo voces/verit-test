@@ -17,6 +17,14 @@ const parser = yargs
 		describe: "Lines of tests and suites to run",
 		number: true,
 		array: true
+	} )
+	.option( "test-name-filter", {
+		alias: [ "t", "n" ],
+		describe: "Test full name must match pattern",
+		string: true,
+		array: true
 	} );
 
 export default parser.argv;
+
+export const alias = parser.getOptions().alias;
