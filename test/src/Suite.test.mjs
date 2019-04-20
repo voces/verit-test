@@ -169,7 +169,7 @@ it( "Suite#before", () => {
 
 } );
 
-it( "Suite#beforeEach", () => {
+describe( "Suite#beforeEach", () => {
 
 	const suite = new Suite( "suite" );
 	const callback = () => {};
@@ -501,6 +501,7 @@ describe( "Suite#run", () => {
 		suite.before( syncBefore );
 		const asyncBefore = asyncSpy();
 		suite.before( asyncBefore );
+
 		const syncAfter = sinon.spy();
 		suite.after( syncAfter );
 		const asyncAfter = asyncSpy();

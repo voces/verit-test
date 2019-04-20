@@ -77,7 +77,6 @@ export default class Test extends Node {
 
 	}
 
-	// TODO: we should only await async functions/explicit parallel
 	async run() {
 
 		if ( this.config.skip || this.err ) return;

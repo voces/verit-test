@@ -97,27 +97,20 @@ export default class Suite extends Node {
 		}
 
 		const test = new Test( name, config, callback, this );
+		test.line = getCallerLine();
 
 		if ( ( this.config.line || this.config.testNameFilter ) && ! this.config.lineHit ) {
 
 			let hit = false;
 
-			if ( this.config.line && this.config.line.includes( getCallerLine() ) )
+			if ( this.config.line && this.config.line.includes( test.line ) )
 				hit = true;
 
-			try {
+			if ( ! hit && this.config.testNameFilter &&
+				this.config.testNameFilter.some( str =>
+					toRegExp( str ).test( test.fullName ) ) )
 
-				if ( ! hit && this.config.testNameFilter &&
-						this.config.testNameFilter.some( str =>
-							toRegExp( str ).test( test.fullName ) ) )
-
-					hit = true;
-
-			} catch ( err ) {
-
-				console.log( err );
-
-			}
+				hit = true;
 
 			if ( ! hit )
 				test.config.skip = true;
@@ -189,10 +182,6 @@ export default class Suite extends Node {
 			else
 				this.befores[ i ]( this );
 
-		// TODO: parallel should be either a boolean or Node
-		// If a node, the test should run in sync under that node
-		// A false value on a test indicates the suite; a suite indicates itself
-		// TODO: pipe stdout and stderr into the test
 		if ( this.config.parallel )
 			await Promise.all( this.childrenArr.map( node => node.run() ) );
 
@@ -210,7 +199,7 @@ export default class Suite extends Node {
 
 	async run( exit = true ) {
 
-		if ( this.config.skip ) return;
+		if ( this.config.skip || this.err ) return;
 
 		this.start = clock();
 		await this._run( exit );
@@ -290,6 +279,15 @@ export default class Suite extends Node {
 			value: [].concat( ...this.childrenArr.map( node => node instanceof Suite ? node.tests : node ) )
 		} );
 		return this.tests;
+
+	}
+
+	get suites() {
+
+		Object.defineProperty( this, "suites", {
+			value: [].concat( this, ...this.childrenArr.map( node => node instanceof Suite ? node.suites : [] ) )
+		} );
+		return this.suites;
 
 	}
 

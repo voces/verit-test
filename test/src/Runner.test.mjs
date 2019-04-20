@@ -1,8 +1,11 @@
 
-import assert from "assert";
+import chai from "chai";
+import stripAnsi from "strip-ansi";
 import { sleep, time } from "../../src/util.mjs";
 import { describe, it } from "../../index.mjs";
 import Runner from "../../src/Runner.mjs";
+
+const { expect } = chai;
 
 describe( "Runner#describe", () => {
 
@@ -19,10 +22,10 @@ describe( "Runner#describe", () => {
 
 		} );
 
-		assert.equal( fine.err, undefined );
-		assert.equal( errored.err, error );
-		assert.equal( errored.tests.length, 1 );
-		assert.equal( errored.tests[ 0 ].err, error );
+		expect( fine.err ).to.be.undefined;
+		expect( errored.err ).to.equal( error );
+		expect( errored.tests ).to.have.lengthOf( 1 );
+		expect( errored.tests[ 0 ].err ).to.equal( error );
 
 	} );
 
@@ -34,12 +37,66 @@ describe( "Runner#run", () => {
 
 		const runner = new Runner( { parallel: true } );
 		for ( let i = 0; i < 10; i ++ )
-			runner.describe( `suite${i}`, suite =>
-				suite.it( "test", async () => await sleep( 10 ) ) );
+			runner.describe( `suite${i}`, () =>
+				runner.it( "test", async () => await sleep( 10 ) ) );
 		const { duration } = await time( runner.run( false ) );
 
-		assert( duration > 10 );
-		assert( duration < 50 );
+		expect( duration ).to.be.within( 10, 90 );
+
+	} );
+
+	it( "serial", async () => {
+
+		const runner = new Runner( { parallel: false } );
+		for ( let i = 0; i < 3; i ++ )
+			runner.describe( `suite${i}`, () =>
+				runner.it( "test", async () => await sleep( 10 ) ) );
+		const { duration } = await time( runner.run( false ) );
+
+		expect( duration ).to.be.within( 30, 200 );
+
+	} );
+
+} );
+
+it( "Runner#pass", () => {
+
+	const runner = new Runner( { parallel: true } );
+	runner.describe( "passes", () => {} );
+	runner.describe( "fails", () => expect( true ).to.be.false );
+
+	expect( runner.pass ).to.be.false;
+
+} );
+
+describe( "Runner#toString", () => {
+
+	it( "suite fail", async () => {
+
+		const runner = new Runner( { parallel: true, failingTests: true } );
+		runner.describe( "passes", () => {} );
+		runner.describe( "fails", () => expect( true ).to.be.false );
+		await runner.run( false );
+
+		expect( stripAnsi( runner.toString() ) ).to.contain( "Focus on failing tests:\nvt fails" );
+
+	} );
+
+	it( "test fails", async () => {
+
+		const runner = new Runner( { parallel: true, failingTests: true } );
+		runner.describe( "passes", () => {} );
+		runner.describe( "fails", () => {
+
+			runner.it( "passes", () => {} );
+			runner.it( "fails1", () => expect( true ).to.be.false );
+			runner.it( "fails2", () => expect( true ).to.be.false );
+
+		} );
+		await runner.run( false );
+
+		expect( stripAnsi( runner.toString() ) )
+			.to.contain( "Focus on failing tests:\nvt fails -t fails1 -t fails2" );
 
 	} );
 

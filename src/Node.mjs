@@ -27,6 +27,12 @@ export default class Node {
 
 	}
 
+	root() {
+
+		return this.traverseUp( node => node );
+
+	}
+
 	allBeforeEaches() {
 
 		return this.traverseUp( ( node, beforeEaches ) =>

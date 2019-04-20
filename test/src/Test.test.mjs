@@ -1,8 +1,11 @@
 
 import assert from "assert";
+import chai from "chai";
 import { describe, it } from "../../index.mjs";
 import { sleep, time } from "../../src/util.mjs";
 import Test from "../../src/Test.mjs";
+
+const { expect } = chai;
 
 describe( "Test#constructor", () => {
 
@@ -56,10 +59,10 @@ describe( "Test#run", () => {
 
 	it( "timeout", async () => {
 
-		const test = new Test( "test", { timeout: 10 }, async () => sleep( 100 ) );
+		const test = new Test( "test", { timeout: 10 }, async () => sleep( 1000 ) );
 		const { duration } = await time( test.run( false ) );
 
-		assert( duration > 10 && duration < 100 );
+		expect( duration ).to.be.within( 9, 999 );
 
 	} );
 
@@ -68,7 +71,47 @@ describe( "Test#run", () => {
 		const test = new Test( "test", { timeout: undefined }, async () => sleep( 10 ) );
 		const { duration } = await time( test.run( false ) );
 
-		assert( duration > 10 );
+		expect( duration ).to.be.greaterThan( 9 );
+
+	} );
+
+	describe( "done", () => {
+
+		it( "times out if not called", async () => {
+
+			const test = new Test( "test", { timeout: 10 }, done => {} ); // eslint-disable-line no-unused-vars
+			const { duration } = await time( test.run( false ) );
+
+			expect( duration ).to.be.within( 9, 1000 );
+			expect( test.err.toString() ).to.equal( "Error: Expected `done` to be called within 10ms" );
+
+		} );
+
+		it( "sync", async () => {
+
+			const test = new Test( "test", { timeout: 10 }, done => done() );
+			const { duration } = await time( test.run( false ) );
+
+			expect( duration ).to.be.lessThan( 9 );
+			expect( test.err ).to.be.undefined;
+
+		} );
+
+		it( "async", async () => {
+
+			const test = new Test( "test", { timeout: 10 }, async done => {
+
+				await sleep( 10 );
+				done();
+				await sleep( 100 );
+
+			} );
+			const { duration } = await time( test.run( false ) );
+
+			expect( duration ).to.be.within( 9, 109 );
+			expect( test.err ).to.be.undefined;
+
+		} );
 
 	} );
 

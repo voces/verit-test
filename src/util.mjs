@@ -53,18 +53,55 @@ export const timeout = ( promise, ms, string ) => {
 
 };
 
-// Turns an array of values into a memoized key
+class MixedMap {
+
+	constructor() {
+
+		this.map = new WeakMap();
+		this.obj = {};
+
+	}
+
+	has( key ) {
+
+		if ( typeof key === "object" ) return this.map.has( key );
+		return key in this.obj;
+
+	}
+
+	get( key ) {
+
+		if ( typeof key === "object" ) return this.map.get( key );
+		return this.obj[ key ];
+
+	}
+
+	set( key, value ) {
+
+		if ( typeof key === "object" ) return this.map.set( key, value );
+		return this.obj[ key ] = value;
+
+	}
+
+}
+
+// Turns an array of values into a memoized key; order matters
 // E.g.: key( ...[ 1, 2, 3 ] ) === key( ...[ 1, 2, 3 ] )
 const keyMemory = [];
+const zeroKey = [];
+let keyId = 0;
 export const key = ( ...args ) => {
 
-	let memory = keyMemory[ args.length ] || ( keyMemory[ args.length ] = new WeakMap() );
+	if ( args.length === 0 ) return zeroKey;
+
+	let memory = keyMemory[ args.length ] ||
+		( keyMemory[ args.length ] = new MixedMap() );
 
 	for ( let i = 0; i < args.length - 1; i ++ )
 		if ( memory.has( args[ i ] ) ) memory = memory.get( args[ i ] );
 		else {
 
-			const innerMemory = new WeakMap();
+			const innerMemory = new MixedMap();
 			memory.set( args[ i ], innerMemory );
 			memory = innerMemory;
 
@@ -75,7 +112,8 @@ export const key = ( ...args ) => {
 	if ( memory.has( lastArg ) )
 		return memory.get( lastArg );
 
-	const key = args;
+	args.___id = keyId ++;
+	const key = Object.freeze( args );
 	memory.set( lastArg, key );
 	return key;
 
@@ -88,7 +126,6 @@ export const memoize = ( fn, ...fixedArgs ) => {
 	let emptyValue;
 	let emptyValueSet = false;
 
-	// TODO: allow additional unmemoized args and overwriting
 	return ( ...args ) => {
 
 		if ( args.length === 0 ) {
@@ -100,7 +137,7 @@ export const memoize = ( fn, ...fixedArgs ) => {
 
 		}
 
-		const memoizeKey = key( args );
+		const memoizeKey = key( ...args );
 
 		if ( memory.has( memoizeKey ) ) return memory.get( memoizeKey );
 

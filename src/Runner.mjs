@@ -21,6 +21,8 @@ export default class Runner {
 		this.loaded = false;
 		this.config( config );
 
+		// These methods are expected to be called without a target,
+		// thus we define them as arrow functions
 		this.describe = ( name, config, callback ) => {
 
 			if ( typeof config === "function" ) {
@@ -51,18 +53,17 @@ export default class Runner {
 		};
 
 		this.it = ( ...args ) => this.cur.it( ...args );
-		this.before = name => this.cur.before( name );
-		this.beforeEach = name => this.cur.beforeEach( name );
-		this.after = name => this.cur.after( name );
-		this.afterEach = name => this.cur.afterEach( name );
+		this.before = callback => this.cur.before( callback );
+		this.beforeEach = callback => this.cur.beforeEach( callback );
+		this.after = callback => this.cur.after( callback );
+		this.afterEach = callback => this.cur.afterEach( callback );
 
 	}
 
 	get suiteConfig() {
 
 		return {
-			parallel: this.parallel,
-			...this.user
+			...this.rawConfig
 		};
 
 	}
@@ -70,25 +71,23 @@ export default class Runner {
 	config( {
 		glob = [ "**/*.test.mjs", "!node_modules/**" ],
 		files,
-		parallel,
-		...user
+		...config
 	} = {} ) {
 
-		// TODO: right now we only allow files or glob; we should allow both?
-		// Maybe files can just be treated as glob?
 		this.files = files;
 		if ( ! files ) this.glob = glob;
 		else this.glob = undefined;
 
-		this.parallel = parallel;
-
-		this.user = user;
+		this.rawConfig = config;
 
 	}
 
 	newSuite( name, config ) {
 
 		const suite = new Suite( name, { ...this.suiteConfig, ...config } );
+		// if ( suite.fullName.includes( ".mjs/" ) )
+		// 	debugger;
+
 		this.suites.push( suite );
 		return suite;
 
@@ -117,7 +116,7 @@ export default class Runner {
 
 		const { duration } = await time( async() => {
 
-			if ( this.parallel )
+			if ( this.rawConfig.parallel )
 				await Promise.all( this.suites.map( suite => runSuite( suite, print ) ) );
 
 			else
@@ -138,30 +137,9 @@ export default class Runner {
 
 	}
 
-	get passingTests() {
+	get fail() {
 
-		Object.defineProperty( this, "passingTests", {
-			value: this.tests.filter( t => t.pass )
-		} );
-		return this.passingTests;
-
-	}
-
-	get failingTests() {
-
-		Object.defineProperty( this, "failingTests", {
-			value: this.tests.filter( t => t.fail )
-		} );
-		return this.failingTests;
-
-	}
-
-	get skippedTests() {
-
-		Object.defineProperty( this, "skippedTests", {
-			value: this.tests.filter( t => ! t.fail && t.config.skip )
-		} );
-		return this.skippedTests;
+		return this.suites.some( suite => suite.fail );
 
 	}
 
@@ -174,18 +152,93 @@ export default class Runner {
 
 	}
 
-	print( fullPrint = true ) {
+	get allSuites() {
+
+		Object.defineProperty( this, "allSuites", {
+			value: [].concat( ...this.suites.map( suites => suites.suites ) )
+		} );
+		return this.allSuites;
+
+	}
+
+	toString( fullPrint = true ) {
+
+		const strs = [];
 
 		if ( fullPrint )
 			for ( let i = 0; i < this.suites.length; i ++ )
-				console.log( this.suites[ i ].toString() );
+				strs.push( this.suites[ i ].toString() );
 
-		console.log( "" );
+		strs.push( "" );
 
-		console.log( chalk.green( "%d tests passing" ), this.passingTests.length );
-		console.log( chalk.red( "%d tests failing" ), this.failingTests.length );
-		if ( this.skippedTests.length ) console.log( chalk.yellow( "%d tests skipped" ), this.skippedTests.length );
-		console.log( chalk.gray( `Total duration: ${this.duration.toFixed( 2 )}ms` ) );
+		{
+
+			const passingFiles = this.suites.filter( suite => suite.pass ).length;
+			const failingFiles = this.suites.filter( suite => suite.fail ).length;
+			const skippedFiles = this.suites.filter( suite => suite.config.skip ).length;
+
+			strs.push( [
+				`Files:  ${chalk.green( `${passingFiles} passed` )}`,
+				failingFiles && chalk.red( `${failingFiles} failed` ),
+				skippedFiles && chalk.yellow( `${skippedFiles} skipped` )
+			].filter( Boolean ).join( ", " ) );
+
+		}
+
+		{
+
+			const passingSuites = this.allSuites.filter( suite => suite.pass ).length;
+			const failingSuites = this.allSuites.filter( suite => suite.fail ).length;
+			const skippedSuites = this.allSuites.filter( suite => suite.config.skip ).length;
+
+			strs.push( [
+				`Suites: ${chalk.green( `${passingSuites} passed` )}`,
+				failingSuites && chalk.red( `${failingSuites} failed` ),
+				skippedSuites && chalk.yellow( `${skippedSuites} skipped` )
+			].filter( Boolean ).join( ", " ) );
+
+		}
+
+		const failingTests = this.tests.filter( tests => tests.fail );
+		{
+
+			const passingTests = this.tests.filter( tests => tests.pass ).length;
+			const skippedTests = this.tests.filter( tests => tests.config.skip ).length;
+
+			strs.push( [
+				`Tests:  ${chalk.green( `${passingTests} passed` )}`,
+				failingTests.length && chalk.red( `${failingTests.length} failed` ),
+				skippedTests && chalk.yellow( `${skippedTests} skipped` )
+			].filter( Boolean ).join( ", " ) );
+
+		}
+
+		strs.push( chalk.gray( `Total duration: ${this.duration.toFixed( 2 )}ms` ) );
+
+		if ( this.rawConfig.failingTests && this.fail ) {
+
+			strs.push( "" );
+			strs.push( "Focus on failing tests:" );
+			this.suites.filter( suite => suite.fail ).forEach( suite => {
+
+				const base = `vt ${suite.name}`;
+				if ( suite.failingTests.length )
+					strs.push( `${base} ${suite.failingTests.map( test =>
+						`-t ${test.fullName.slice( suite.name.length + 1 )}` ).join( " " )}` );
+				else
+					strs.push( base );
+
+			} );
+
+		}
+
+		return strs.join( "\n" );
+
+	}
+
+	print( fullPrint = true ) {
+
+		console.log( this.toString( fullPrint ) );
 
 	}
 

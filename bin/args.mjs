@@ -23,6 +23,11 @@ const parser = yargs
 		describe: "Test full name must match pattern",
 		string: true,
 		array: true
+	} )
+	.option( "failing-tests", {
+		describe: "Print shortcuts to run fiaing tests",
+		boolean: true,
+		default: true
 	} );
 
 export default parser.argv;
